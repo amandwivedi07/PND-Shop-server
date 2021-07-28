@@ -1,3 +1,4 @@
+  
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
@@ -49,9 +50,6 @@ mongoose.connect(process.env.CONNECTION_STRING, {
 
 //     console.log('server is running http://localhost:3000');
 // })
-
-
-//  Production
 var server = app.listen(process.env.PORT || 3000, function () {
-     var port = server.address().port; 
-    console.log("Express is working on port " + port); });
+    var port = server.address().port; 
+   console.log("Express is working on port " + port); });
