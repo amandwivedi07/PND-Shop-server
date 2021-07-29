@@ -8,7 +8,7 @@ const multer = require('multer');
 const FILE_TYPE_MAP = {
     'image/png': 'png',
     'image/jpeg': 'jpeg',
-    'image/jpg': 'jpg'
+    'image/jpg': 'jpg',
 };
 
 const storage = multer.diskStorage({
@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
         const fileName = file.originalname.split(' ').join('-');
         const extension = FILE_TYPE_MAP[file.mimetype];
         cb(null, `${fileName}-${Date.now()}.${extension}`);
-    }
+    },
 });
 
 const uploadOptions = multer({ storage: storage });
@@ -73,7 +73,7 @@ router.post(`/`, uploadOptions.single('image'), async (req, res) => {
         countInStock: req.body.countInStock,
         rating: req.body.rating,
         numReviews: req.body.numReviews,
-        isFeatured: req.body.isFeatured
+        isFeatured: req.body.isFeatured,
     });
 
     product = await product.save();
@@ -117,12 +117,13 @@ router.put('/:id', uploadOptions.single('image'), async (req, res) => {
             countInStock: req.body.countInStock,
             rating: req.body.rating,
             numReviews: req.body.numReviews,
-            isFeatured: req.body.isFeatured
+            isFeatured: req.body.isFeatured,
         },
         { new: true }
     );
 
-    if (!updatedProduct) return res.status(500).send('the product cannot be updated!');
+    if (!updatedProduct)
+        return res.status(500).send('the product cannot be updated!');
 
     res.send(updatedProduct);
 });
@@ -131,12 +132,16 @@ router.delete('/:id', (req, res) => {
     Product.findByIdAndRemove(req.params.id)
         .then((product) => {
             if (product) {
-                return res.status(200).json({
-                    success: true,
-                    message: 'the product is deleted!'
-                });
+                return res
+                    .status(200)
+                    .json({
+                        success: true,
+                        message: 'the product is deleted!',
+                    });
             } else {
-                return res.status(404).json({ success: false, message: 'product not found!' });
+                return res
+                    .status(404)
+                    .json({ success: false, message: 'product not found!' });
             }
         })
         .catch((err) => {
@@ -151,7 +156,7 @@ router.get(`/get/count`, async (req, res) => {
         res.status(500).json({ success: false });
     }
     res.send({
-        productCount: productCount
+        productCount: productCount,
     });
 });
 
@@ -165,31 +170,36 @@ router.get(`/get/featured/:count`, async (req, res) => {
     res.send(products);
 });
 
-router.put('/gallery-images/:id', uploadOptions.array('images', 10), async (req, res) => {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-        return res.status(400).send('Invalid Product Id');
+router.put(
+    '/gallery-images/:id',
+    uploadOptions.array('images', 10),
+    async (req, res) => {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).send('Invalid Product Id');
+        }
+        const files = req.files;
+        let imagesPaths = [];
+        const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
+
+        if (files) {
+            files.map((file) => {
+                imagesPaths.push(`${basePath}${file.filename}`);
+            });
+        }
+
+        const product = await Product.findByIdAndUpdate(
+            req.params.id,
+            {
+                images: imagesPaths,
+            },
+            { new: true }
+        );
+
+        if (!product)
+            return res.status(500).send('the gallery cannot be updated!');
+
+        res.send(product);
     }
-    const files = req.files;
-    let imagesPaths = [];
-    const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
-
-    if (files) {
-        files.map((file) => {
-            imagesPaths.push(`${basePath}${file.filename}`);
-        });
-    }
-
-    const product = await Product.findByIdAndUpdate(
-        req.params.id,
-        {
-            images: imagesPaths
-        },
-        { new: true }
-    );
-
-    if (!product) return res.status(500).send('the gallery cannot be updated!');
-
-    res.send(product);
-});
+);
 
 module.exports = router;
